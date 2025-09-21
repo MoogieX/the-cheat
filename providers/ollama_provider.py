@@ -7,16 +7,15 @@ class OllamaProvider(BaseProvider):
     An AI provider that uses a local Ollama server.
     """
 
-    def __init__(self, model_name: str = 'llama3', host: str = 'http://localhost:11434'):
+    def __init__(self, config):
         """
-        Initializes the Ollama provider.
+        Initializes the Ollama provider from a config object.
 
         Args:
-            model_name: The name of the Ollama model to use (e.g., 'llama3').
-            host: The URL of the Ollama server.
+            config: A configparser section proxy with ollama settings.
         """
-        self.model_name = model_name
-        self.host = host
+        self.model_name = config.get('model', 'llama3')
+        self.host = config.get('host', 'http://localhost:11434')
         self.api_url = f"{self.host}/api/generate"
 
     def get_ai_assistance(self, prompt: str) -> str:

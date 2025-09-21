@@ -6,9 +6,10 @@ class GeminiProvider(BaseProvider):
     An AI provider that uses the Google Gemini API.
     """
 
-    def __init__(self, api_key: str):
+    def __init__(self, config):
+        api_key = config.get('api_key')
         if not api_key or api_key == "YOUR_API_KEY":
-            raise ValueError("Gemini API key is missing. Please configure it in school_work_helper.py")
+            raise ValueError("Gemini API key is missing. Please configure it in config.ini")
         self.api_key = api_key
 
     def get_ai_assistance(self, prompt: str) -> str:

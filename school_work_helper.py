@@ -1,43 +1,58 @@
 import importlib
+import configparser
 
-# --- Configuration ---
-# Choose your AI provider: 'gemini' is the default.
-# We can add more later, like 'ollama' for local models.
-AI_PROVIDER = "gemini"
+# --- Configuration Loading ---
 
-# API Keys for different cloud services
-# IMPORTANT: Replace "YOUR_API_KEY" with your actual Gemini API key.
-# You can get a key from Google AI Studio: https://aistudio.google.com/app/apikey
-API_KEYS = {
-    "gemini": "YOUR_API_KEY"
-}
+def load_config():
+    """
+    Loads settings from config.ini.
+    Returns a configparser object or None if the file is not found.
+    """
+    config = configparser.ConfigParser()
+    if not config.read('config.ini'):
+        print("Error: config.ini not found. Please create it.")
+        return None
+    return config
 
 # --- Provider Loading ---
 
-def get_provider(provider_name: str):
+def get_provider(config):
     """
     Dynamically imports and returns an instance of the chosen AI provider.
     """
     try:
+        provider_name = config.get('General', 'ai_provider')
+    except (configparser.NoSectionError, configparser.NoOptionError) as e:
+        print(f"Error: Missing [General] section or 'ai_provider' option in config.ini: {e}")
+        return None, None
+
+    try:
         module = importlib.import_module(f"providers.{provider_name}_provider")
-        # Assumes the class name is ProviderNameProvider (e.g., GeminiProvider)
         class_name = f"{provider_name.capitalize()}Provider"
         provider_class = getattr(module, class_name)
 
-        # Pass the API key if the provider needs one
-        api_key = API_KEYS.get(provider_name)
-        if api_key:
-            return provider_class(api_key=api_key)
+        # Get the appropriate config section for the provider
+        provider_config = {}
+        if provider_name == 'gemini':
+            # The Gemini provider expects the api_key directly
+            provider_config['api_key'] = config.get('API_KEYS', 'gemini', fallback=None)
+            # We need to pass a dictionary-like object to the constructor
+            provider_instance = provider_class(type('Config', (), {'get': lambda k, d=None: provider_config.get(k, d)}))
+        elif provider_name in config:
+            provider_instance = provider_class(config[provider_name])
         else:
-            return provider_class()
+            # For providers that don't need special config (if any)
+            provider_instance = provider_class()
+
+        return provider_instance, provider_name
 
     except (ImportError, AttributeError) as e:
         print(f"Error: Could not load provider '{provider_name}'. Please check the provider name and files.")
         print(f"Details: {e}")
-        return None
+        return None, None
     except Exception as e:
         print(f"An unexpected error occurred while loading the provider: {e}")
-        return None
+        return None, None
 
 # --- Main Application Logic ---
 
@@ -45,13 +60,16 @@ def main():
     """
     Main function to run the school work helper.
     """
-    print("--- AI School Work Helper ---")
-    print(f"Using AI provider: {AI_PROVIDER}")
+    config = load_config()
+    if not config:
+        return
 
-    provider = get_provider(AI_PROVIDER)
+    provider, provider_name = get_provider(config)
     if not provider:
         return
 
+    print("--- AI School Work Helper ---")
+    print(f"Using AI provider: {provider_name}")
     print("Enter your question or prompt below. Type 'exit' to quit.")
 
     while True:
