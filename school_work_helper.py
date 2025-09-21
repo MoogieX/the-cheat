@@ -33,19 +33,16 @@ def get_provider(config):
 
         # Get the appropriate config section for the provider
         if provider_name == 'gemini':
-            # The Gemini provider expects the API_KEYS section
             if 'API_KEYS' in config:
                 provider_instance = provider_class(config['API_KEYS'])
             else:
                 raise configparser.NoSectionError('API_KEYS')
         elif provider_name == 'ollama':
-            # The Ollama provider expects the Ollama section
             if 'Ollama' in config:
                 provider_instance = provider_class(config['Ollama'])
             else:
                 raise configparser.NoSectionError('Ollama')
         else:
-            # For providers that don't need a config section
             provider_instance = provider_class()
 
         return provider_instance, provider_name
@@ -60,6 +57,21 @@ def get_provider(config):
     except Exception as e:
         print(f"An unexpected error occurred while loading the provider: {e}")
         return None, None
+
+# --- Helper Functions ---
+
+def get_multiline_input(prompt):
+    """
+    Prompts the user for multi-line input until they type 'END_TEXT'.
+    """
+    print(prompt)
+    lines = []
+    while True:
+        line = input()
+        if line.strip().upper() == "END_TEXT":
+            break
+        lines.append(line)
+    return "\n".join(lines)
 
 # --- Application Modes ---
 
@@ -82,16 +94,8 @@ def run_summarizer_mode(provider):
     Runs the text summarization mode.
     """
     print("\n--- Summarizer Mode ---")
-    print("Paste the text you want to summarize. Type 'END_TEXT' on a new line to finish.")
+    text_to_summarize = get_multiline_input("Paste the text you want to summarize. Type 'END_TEXT' on a new line to finish.")
     
-    lines = []
-    while True:
-        line = input()
-        if line == "END_TEXT":
-            break
-        lines.append(line)
-    
-    text_to_summarize = "\n".join(lines)
     if not text_to_summarize.strip():
         print("No text provided.")
         return
@@ -101,6 +105,35 @@ def run_summarizer_mode(provider):
     
     ai_response = provider.get_ai_assistance(prompt)
     print("\n--- Summary ---")
+    print(ai_response)
+
+def run_paraphraser_mode(provider):
+    """
+    Runs the text paraphraser mode with an optional style example.
+    """
+    print("\n--- Paraphraser Mode ---")
+    text_to_paraphrase = get_multiline_input("Paste the text you want to paraphrase. Type 'END_TEXT' on a new line to finish.")
+
+    if not text_to_paraphrase.strip():
+        print("No text provided.")
+        return
+
+    style_choice = input("Do you want to provide a style example? (y/n): ").lower()
+    
+    prompt = ""
+    if style_choice == 'y':
+        style_example = get_multiline_input("Paste your style example. Type 'END_TEXT' on a new line to finish.")
+        if not style_example.strip():
+            print("No style example provided. Proceeding with a simple paraphrase.")
+            prompt = f"Please paraphrase the following text:\n\n---\n{text_to_paraphrase}\n---"
+        else:
+            prompt = f"Paraphrase the following text. Your response should mimic the writing style of the provided style example.\n\n--- STYLE EXAMPLE ---\n{style_example}\n\n--- TEXT TO PARAPHRASE ---\n{text_to_paraphrase}\n---"
+    else:
+        prompt = f"Please paraphrase the following text:\n\n---\n{text_to_paraphrase}\n---"
+
+    print("\nParaphrasing... Please wait.")
+    ai_response = provider.get_ai_assistance(prompt)
+    print("\n--- Paraphrased Text ---")
     print(ai_response)
 
 # --- Main Application Logic ---
@@ -124,7 +157,8 @@ def main():
         print("\n--- Main Menu ---")
         print("1. Q&A Mode")
         print("2. Summarizer Mode")
-        print("3. Exit")
+        print("3. Paraphraser Mode")
+        print("4. Exit")
         
         choice = input("Choose a mode: ")
 
@@ -133,6 +167,8 @@ def main():
         elif choice == '2':
             run_summarizer_mode(provider)
         elif choice == '3':
+            run_paraphraser_mode(provider)
+        elif choice == '4':
             print("Exiting. Goodbye!")
             break
         else:
