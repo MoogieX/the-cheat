@@ -1,0 +1,17 @@
+# Python build artifacts
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environments
+env/
+venv/
+
+# Secret files
+.env
+config.ini
+
+# IDE / Editor specific
+.vscode/
+.idea/

@@ -1,0 +1,35 @@
+body {
+    background-color: #1a1a1a;
+    color: #f0f0f0;
+    font-family: monospace;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+}
+
+#game-container {
+    width: 80%;
+    max-width: 800px;
+    border: 1px solid #444;
+    padding: 20px;
+    background-color: #252525;
+}
+
+#game-text {
+    height: 400px;
+    overflow-y: auto;
+    border-bottom: 1px solid #444;
+    margin-bottom: 10px;
+    padding-right: 10px;
+}
+
+#user-input {
+    width: 100%;
+    background-color: #333;
+    color: #f0f0f0;
+    border: 1px solid #555;
+    padding: 10px;
+    box-sizing: border-box; /* Ensures padding doesn't affect width */
+}

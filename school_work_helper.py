@@ -32,16 +32,20 @@ def get_provider(config):
         provider_class = getattr(module, class_name)
 
         # Get the appropriate config section for the provider
-        provider_config = {}
         if provider_name == 'gemini':
-            # The Gemini provider expects the api_key directly
-            provider_config['api_key'] = config.get('API_KEYS', 'gemini', fallback=None)
-            # We need to pass a dictionary-like object to the constructor
-            provider_instance = provider_class(type('Config', (), {'get': lambda k, d=None: provider_config.get(k, d)}))
-        elif provider_name in config:
-            provider_instance = provider_class(config[provider_name])
+            # The Gemini provider expects the API_KEYS section
+            if 'API_KEYS' in config:
+                provider_instance = provider_class(config['API_KEYS'])
+            else:
+                raise configparser.NoSectionError('API_KEYS')
+        elif provider_name == 'ollama':
+            # The Ollama provider expects the Ollama section
+            if 'Ollama' in config:
+                provider_instance = provider_class(config['Ollama'])
+            else:
+                raise configparser.NoSectionError('Ollama')
         else:
-            # For providers that don't need special config (if any)
+            # For providers that don't need a config section
             provider_instance = provider_class()
 
         return provider_instance, provider_name
@@ -50,9 +54,54 @@ def get_provider(config):
         print(f"Error: Could not load provider '{provider_name}'. Please check the provider name and files.")
         print(f"Details: {e}")
         return None, None
+    except (configparser.NoSectionError, configparser.NoOptionError) as e:
+        print(f"Error: Missing configuration section or option for '{provider_name}' in config.ini: {e}")
+        return None, None
     except Exception as e:
         print(f"An unexpected error occurred while loading the provider: {e}")
         return None, None
+
+# --- Application Modes ---
+
+def run_qa_mode(provider):
+    """
+    Runs the interactive Question & Answer mode.
+    """
+    print("\n--- Q&A Mode ---")
+    print("Enter your question or prompt below. Type 'exit' to return to the main menu.")
+    while True:
+        user_prompt = input("\n> ")
+        if user_prompt.lower() == 'exit':
+            break
+        ai_response = provider.get_ai_assistance(user_prompt)
+        print("\nAI Assistant:")
+        print(ai_response)
+
+def run_summarizer_mode(provider):
+    """
+    Runs the text summarization mode.
+    """
+    print("\n--- Summarizer Mode ---")
+    print("Paste the text you want to summarize. Type 'END_TEXT' on a new line to finish.")
+    
+    lines = []
+    while True:
+        line = input()
+        if line == "END_TEXT":
+            break
+        lines.append(line)
+    
+    text_to_summarize = "\n".join(lines)
+    if not text_to_summarize.strip():
+        print("No text provided.")
+        return
+
+    print("\nSummarizing... Please wait.")
+    prompt = f"Please provide a concise summary of the following text:\n\n---\n{text_to_summarize}\n---"
+    
+    ai_response = provider.get_ai_assistance(prompt)
+    print("\n--- Summary ---")
+    print(ai_response)
 
 # --- Main Application Logic ---
 
@@ -70,16 +119,24 @@ def main():
 
     print("--- AI School Work Helper ---")
     print(f"Using AI provider: {provider_name}")
-    print("Enter your question or prompt below. Type 'exit' to quit.")
 
     while True:
-        user_prompt = input("\n> ")
-        if user_prompt.lower() == 'exit':
-            break
+        print("\n--- Main Menu ---")
+        print("1. Q&A Mode")
+        print("2. Summarizer Mode")
+        print("3. Exit")
+        
+        choice = input("Choose a mode: ")
 
-        ai_response = provider.get_ai_assistance(user_prompt)
-        print("\nAI Assistant:")
-        print(ai_response)
+        if choice == '1':
+            run_qa_mode(provider)
+        elif choice == '2':
+            run_summarizer_mode(provider)
+        elif choice == '3':
+            print("Exiting. Goodbye!")
+            break
+        else:
+            print("Invalid choice, please try again.")
 
 if __name__ == "__main__":
     main()
